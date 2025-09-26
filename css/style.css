@@ -6,6 +6,9 @@
   --text-gray: #333333;
   --gray-mid: #666666;
   --gray-light: #999999;
+  --black: #000000;
+  --white: #ffffff;
+  --slate: #cbd5e1;
 }
 
 body {
@@ -124,4 +127,28 @@ header p {
 }
 #speedValue {
   min-width: 4rem;
+}
+
+/* form elements */
+.input-field,
+select.input-field {
+  width: 100%;
+  padding: 0.5rem 0.75 rem;
+  background-color: var(--white);
+  border: 1px solid var(--slate);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--gray-light);
+  box-shadow: 0 0 0 1px var(--gray-light);
+}
+
+input[type="range"] {
+  width: 100%;
+  cursor: pointer;
 }
