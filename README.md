@@ -60,7 +60,7 @@ Pastikan Anda telah menginstal perangkat lunak berikut di mesin Anda:
 ### Kloning Repositori Ini
 
 ```bash
-git clone https://github.com/nama-pengguna/searching-sorting.git
+git clone https://github.com/kifu/searching-sorting.git
 ```
 
 * Buka folder repositori yang telah di-kloning menggunakan editor kode (seperti VS Code).
