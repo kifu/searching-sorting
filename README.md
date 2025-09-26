@@ -2,6 +2,10 @@
 
 Proyek ini adalah laboratorium interaktif berbasis web yang memvisualisasikan cara kerja berbagai algoritma pencarian (searching) dan pengurutan (sorting). Pengguna dapat memilih algoritma, menyesuaikan ukuran larik (array) dan kecepatan animasi, lalu mengamati proses visual dari algoritma tersebut secara *real-time*.
 
+## Live Demo
+
+Anda dapat mencoba website ini secara langsung **[disini](https://searching-sorting-five.vercel.app/)**
+
 ## Fitur Utama
 
 * **Visualisasi Interaktif**: Lihat bagaimana algoritma memproses data langkah demi langkah melalui bar chart yang dinamis.
