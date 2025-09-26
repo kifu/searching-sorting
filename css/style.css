@@ -34,7 +34,7 @@ body {
 }
 
 .hidden {
-  display: none !important;
+  display: none;
 }
 
 .screen-container {
@@ -50,6 +50,8 @@ body {
   border-radius: 1rem;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
   padding: 2rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .text-center {
@@ -59,6 +61,15 @@ body {
 /* login screen */
 #login-screen {
   max-width: 24rem;
+}
+
+.login-title-main {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 1.5rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 #login-screen h1 {
@@ -101,9 +112,20 @@ header p {
 /* controls section */
 #controls {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
   align-items: flex-end;
+}
+
+.actions-container {
+  grid-column: 1 / -1; /* Make container span all columns */
+  display: flex;
+  justify-content: flex-end; /* Push buttons to the right */
+  gap: 1rem;
+}
+
+.actions-container .control-group {
+  min-width: 160px; /* Ensure buttons have a minimum width */
 }
 
 .control-group {
@@ -212,7 +234,7 @@ input[type="range"] {
   padding: 1rem;
   background-color: var(--gray-lighter);
   border-radius: 0.5rem;
-  min-height: 5rem;
+  min-height: 5rem; /* Ensures space for description */
 }
 #explanation h2 {
   font-size: 1.5rem;
@@ -236,7 +258,6 @@ input[type="range"] {
 /* responsive design */
 @media (min-width: 1024px) {
   #controls {
-    grid-template-columns: 1fr 1fr 1fr 1.5fr 1.5fr;
     gap: 1.5rem;
   }
   .control-group-row {
