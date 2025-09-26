@@ -170,3 +170,96 @@ function updateAlgorithmOptions() {
   updateExplanation();
   reset();
 }
+
+// --- event listeners ---
+loginForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const username = usernameInput.value.trim();
+  if (username) {
+    usernameDisplay.textContent = username;
+    loginScreen.classList.add("hidden");
+    labScreen.classList.remove("hidden");
+    setCanvasSize();
+    updateAlgorithmOptions();
+  }
+});
+
+logoutBtn.addEventListener("click", () => {
+  isRunning = false;
+  labScreen.classList.add("hidden");
+  loginScreen.classList.remove("hidden");
+  usernameInput.value = "";
+});
+
+window.addEventListener("resize", () => {
+  if (!labScreen.classList.contains("hidden")) {
+    setCanvasSize();
+    drawArray();
+  }
+});
+
+categorySelect.addEventListener("change", updateAlgorithmOptions);
+
+algorithmSelect.addEventListener("change", () => {
+  updateExplanation();
+  reset();
+});
+
+resetBtn.addEventListener("click", () => {
+  reset();
+  updateExplanation();
+});
+
+startBtn.addEventListener("click", async () => {
+  if (isRunning) {
+    isRunning = false;
+    startBtn.textContent = "Mulai";
+    updateStatus("Animasi dihentikan oleh pengguna.");
+    return;
+  }
+  isRunning = true;
+  toggleControls(false);
+  startBtn.disabled = false;
+  startBtn.textContent = "Hentikan";
+
+  const category = categorySelect.value;
+  const algorithmKey = algorithmSelect.value;
+  const selectedAlgorithm = ALGORITHMS[category][algorithmKey].func;
+
+  if (category === "searching") {
+    const target = parseInt(searchValueInput.value);
+    if (isNaN(target)) {
+      alert("Silakan masukkan nilai yang valid untuk dicari.");
+      isRunning = false;
+      toggleControls(true);
+      return;
+    }
+    await selectedAlgorithm(target);
+  } else {
+    await selectedAlgorithm();
+    // Final sorted animation
+    if (isRunning) {
+      for (let k = 0; k < array.length; k++) {
+        drawArray({ [k]: COLORS.sorted });
+        await sleep(20);
+      }
+      updateStatus("Selesai! Array telah diurutkan.");
+    }
+  }
+
+  isRunning = false;
+  toggleControls(true);
+});
+
+arraySizeSlider.addEventListener("input", (e) => {
+  arraySizeValue.textContent = e.target.value;
+  if (!isRunning) {
+    reset();
+    updateExplanation();
+  }
+});
+
+speedSlider.addEventListener("input", (e) => {
+  speedValue.textContent = `${e.target.value}ms`;
+  delay = 1050 - parseInt(e.target.value);
+});
