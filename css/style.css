@@ -91,3 +91,37 @@ header p {
 #username-display {
   font-weight: 700;
 }
+
+/* controls section */
+#controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.control-group label,
+.control-group-row label {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.control-group-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+#arraySizeValue {
+  min-width: 2rem;
+}
+#speedValue {
+  min-width: 4rem;
+}
