@@ -9,6 +9,8 @@
   --black: #000000;
   --white: #ffffff;
   --slate: #cbd5e1;
+  --red: #ef4444;
+  --red-mid: #dc2626;
 }
 
 body {
@@ -151,4 +153,48 @@ select.input-field {
 input[type="range"] {
   width: 100%;
   cursor: pointer;
+}
+
+/* button styling */
+.btn {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--white);
+  border-radius: 0.5rem;
+  border: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.btn:disabled {
+  background-color: var(--gray-light);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background-color: var(--black);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--gray-mid);
+  transform: scale(1.05);
+}
+
+.btn-secondary {
+  background-color: var(--red);
+  width: auto;
+}
+
+.btn-primary:hover {
+  background-color: var(--red-mid);
+}
+
+.full-width {
+  width: 100%;
+  margin-top: 1.5rem;
 }
