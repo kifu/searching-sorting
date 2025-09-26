@@ -65,3 +65,45 @@ const DESCRIPTIONS = {
       "Binary Search adalah algoritma pencarian efisien yang bekerja pada array terurut. Ia membandingkan elemen target dengan elemen tengah, dan jika tidak sama, setengah bagian di mana target tidak mungkin ada akan dieliminasi.",
   },
 };
+
+// --- core functions ---
+function setCanvasSize() {
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+}
+
+function createRandomArray(size) {
+  array = [];
+  const usedNumbers = new Set();
+  while (array.length < size) {
+    let num = Math.floor(Math.random() * 100) + 1;
+    if (!usedNumbers.has(num)) {
+      array.push(num);
+      usedNumbers.add(num);
+    }
+  }
+}
+
+function drawArray(colorConfig = {}) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (array.length === 0) return;
+  const barWidth = canvas.width / array.length;
+  const spacing = barWidth * 0.2;
+  const drawableBarWidth = barWidth - spacing;
+  const maxVal = Math.max(...array, 1);
+
+  array.forEach((value, index) => {
+    const barHeight = (value / maxVal) * (canvas.height * 0.95);
+    const x = index * barWidth + spacing / 2;
+    const y = canvas.height - barHeight;
+
+    ctx.fillStyle = colorConfig[index] || COLORS.default;
+    ctx.fillRect(x, y, drawableBarWidth, barHeight);
+
+    if (drawableBarWidth > 20) {
+      ctx.fillStyle = "#000";
+      ctx.textAlign = "center";
+      ctx.fillText(value, x + drawableBarWidth / 2, y - 5);
+    }
+  });
+}
