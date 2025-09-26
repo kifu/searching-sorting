@@ -49,3 +49,19 @@ body {
 .text-center {
   text-align: center;
 }
+
+/* login screen */
+#login-screen {
+  max-width: 24rem;
+}
+
+#login-screen h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+#login-screen p {
+  color: var(--text-gray);
+  margin-bottom: 1.5rem;
+}
