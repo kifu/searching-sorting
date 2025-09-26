@@ -8,7 +8,26 @@
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <h1>Hello World</h1>
+    <!-- login screen -->
+    <div id="login-screen" class="screen-container">
+      <div class="card text-center">
+        <h1>searching - sorting</h1>
+        <p>Masukkan nama Anda untuk memulai lab.</p>
+        <form id="login-form">
+          <div>
+            <label
+              for="username"
+              style="display: block; text-align: left; font-weight: 500"
+              >Nama
+            </label>
+            <input type="text" id="username" class="input-field" required />
+          </div>
+          <button type="submit" class="btn btn-primary full-width">
+            Masuk
+          </button>
+        </form>
+      </div>
+    </div>
 
     <!-- javascript -->
     <script src="js/script.js"></script>
