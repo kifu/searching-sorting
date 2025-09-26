@@ -107,3 +107,66 @@ function drawArray(colorConfig = {}) {
     }
   });
 }
+
+function updateStatus(text) {
+  statusText.textContent = text;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toggleControls(enabled) {
+  const elements = [
+    resetBtn,
+    startBtn,
+    arraySizeSlider,
+    algorithmSelect,
+    categorySelect,
+    searchValueInput,
+  ];
+  elements.forEach((el) => (el.disabled = !enabled));
+  if (enabled) {
+    startBtn.textContent = "Mulai";
+  }
+}
+
+function reset() {
+  isRunning = false;
+  arraySize = parseInt(arraySizeSlider.value);
+  delay = 1050 - parseInt(speedSlider.value);
+  createRandomArray(arraySize);
+  if (
+    categorySelect.value === "searching" &&
+    algorithmSelect.value === "binary"
+  ) {
+    array.sort((a, b) => a - b);
+  }
+  drawArray();
+  toggleControls(true);
+}
+
+function updateExplanation() {
+  const category = categorySelect.value;
+  const algorithmKey = algorithmSelect.value;
+  if (DESCRIPTIONS[category] && DESCRIPTIONS[category][algorithmKey]) {
+    updateStatus(DESCRIPTIONS[category][algorithmKey]);
+  } else {
+    updateStatus("Pilih kategori dan algoritma untuk melihat deskripsinya.");
+  }
+}
+
+function updateAlgorithmOptions() {
+  const category = categorySelect.value;
+  algorithmSelect.innerHTML = "";
+  for (const key in ALGORITHMS[category]) {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = ALGORITHMS[category][key].name;
+    algorithmSelect.appendChild(option);
+  }
+
+  searchContainer.classList.toggle("hidden", category !== "searching");
+  updateExplanation();
+  reset();
+}
