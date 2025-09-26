@@ -6,6 +6,7 @@
   --text-gray: #333333;
   --gray-mid: #666666;
   --gray-light: #999999;
+  --gray-lighter: #e5e5e5;
   --black: #000000;
   --white: #ffffff;
   --slate: #cbd5e1;
@@ -197,4 +198,43 @@ input[type="range"] {
 .full-width {
   width: 100%;
   margin-top: 1.5rem;
+}
+
+/* explanation section */
+#explanation {
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: var(--gray-lighter);
+  border-radius: 0.5rem;
+  min-height: 5rem;
+}
+#explanation h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+#status {
+  color: var(--text-gray);
+  transition: all 0.3s ease;
+}
+
+/* canvas */
+#sortCanvas {
+  width: 100%;
+  height: 20rem;
+  background-color: var(--white);
+  border-radius: 0.5rem;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* responsive design */
+@media (max-width: 1024px) {
+  #controls {
+    grid-template-columns: 1fr 1fr 1fr 1.5fr 1.5fr;
+    gap: 0.5rem;
+  }
+  .control-group-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
