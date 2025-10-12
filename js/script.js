@@ -1,8 +1,17 @@
 // --- dom elements ---
 const loginScreen = document.getElementById("login-screen");
+const registerScreen = document.getElementById("register-screen");
 const labScreen = document.getElementById("lab-screen");
 const loginForm = document.getElementById("login-form");
-const usernameInput = document.getElementById("username");
+const registerForm = document.getElementById("register-form");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const registerNameInput = document.getElementById("register-name");
+const registerEmailInput = document.getElementById("register-email");
+const registerPasswordInput = document.getElementById("register-password");
+const registerConfirmPasswordInput = document.getElementById(
+  "register-confirm-password"
+);
 const usernameDisplay = document.getElementById("username-display");
 const logoutBtn = document.getElementById("logoutBtn");
 
@@ -321,31 +330,89 @@ async function binarySearch(target) {
 }
 
 // --- event listeners ---
-// memeriksa kita berada di login page atau ngga
+// login form handler
 if (loginForm) {
   loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const username = usernameInput.value.trim();
-    if (username) {
-      localStorage.setItem("username", username);
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    // get users from localStorage
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+
+    // find user with matching email and password
+    const user = users.find(
+      (u) => u.email === email && u.password === password
+    );
+
+    if (user) {
+      // store current user session
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({
+          name: user.name,
+          email: user.email,
+        })
+      );
       window.location.href = "main-page.html";
+    } else {
+      alert("Email atau password salah!");
     }
+  });
+}
+
+// register form handler
+if (registerForm) {
+  registerForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = registerNameInput.value.trim();
+    const email = registerEmailInput.value.trim();
+    const password = registerPasswordInput.value;
+    const confirmPassword = registerConfirmPasswordInput.value;
+
+    // validation
+    if (password !== confirmPassword) {
+      alert("Password dan konfirmasi password tidak cocok!");
+      return;
+    }
+
+    if (password.length < 6) {
+      alert("Password minimal 6 karakter!");
+      return;
+    }
+
+    // get existing users
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+
+    // Check if email already exists
+    if (users.some((u) => u.email === email)) {
+      alert("Email sudah terdaftar!");
+      return;
+    }
+
+    // add new user
+    users.push({ name, email, password });
+    localStorage.setItem("users", JSON.stringify(users));
+
+    alert("Registrasi berhasil! Silakan login.");
+    window.location.href = "index.html";
   });
 }
 
 // memeriksa kita berada di halaman lab atau ngga
 if (labScreen) {
-  const savedUsername = localStorage.getItem("username");
-  if (savedUsername && usernameDisplay) {
-    usernameDisplay.textContent = savedUsername;
-  } else if (!savedUsername) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+
+  if (currentUser && usernameDisplay) {
+    usernameDisplay.textContent = currentUser.name;
+  } else if (!currentUser) {
     window.location.href = "index.html";
   }
 
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       isRunning = false;
-      localStorage.removeItem("username");
+      localStorage.removeItem("currentUser");
       window.location.href = "index.html";
     });
   }

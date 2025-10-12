@@ -12,18 +12,43 @@
     <div id="login-screen" class="screen-container">
       <div class="card text-center">
         <h1>searching - sorting</h1>
-        <p>Masukkan nama Anda untuk memulai lab.</p>
+        <p>Masuk ke akun Anda untuk memulai lab.</p>
         <form id="login-form">
-          <div>
+          <div style="margin-bottom: 1rem">
             <label
-              for="username"
-              style="display: block; text-align: left; font-weight: 500"
-            ></label>
+              for="email"
+              style="
+                display: block;
+                text-align: left;
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+              "
+              >Email</label
+            >
             <input
-              type="text"
-              id="username"
+              type="email"
+              id="email"
               class="input-field"
-              placeholder="Nama"
+              placeholder="contoh@email.com"
+              required
+            />
+          </div>
+          <div style="margin-bottom: 1rem">
+            <label
+              for="password"
+              style="
+                display: block;
+                text-align: left;
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+              "
+              >Password</label
+            >
+            <input
+              type="password"
+              id="password"
+              class="input-field"
+              placeholder="Masukkan password"
               required
             />
           </div>
@@ -31,6 +56,14 @@
             Masuk
           </button>
         </form>
+        <p style="margin-top: 1rem; font-size: 0.875rem">
+          Belum punya akun?
+          <a
+            href="register.html"
+            style="color: var(--red); font-weight: 600; text-decoration: none"
+            >Daftar di sini</a
+          >
+        </p>
       </div>
     </div>
 
