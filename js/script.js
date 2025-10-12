@@ -1,19 +1,25 @@
+// js/script.js
+import { auth, db } from "./firebase-config.js";
+import {
+  signOut,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+  increment,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 // --- dom elements ---
-const loginScreen = document.getElementById("login-screen");
-const registerScreen = document.getElementById("register-screen");
 const labScreen = document.getElementById("lab-screen");
-const loginForm = document.getElementById("login-form");
-const registerForm = document.getElementById("register-form");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const registerNameInput = document.getElementById("register-name");
-const registerEmailInput = document.getElementById("register-email");
-const registerPasswordInput = document.getElementById("register-password");
-const registerConfirmPasswordInput = document.getElementById(
-  "register-confirm-password"
-);
 const usernameDisplay = document.getElementById("username-display");
 const logoutBtn = document.getElementById("logoutBtn");
+const totalSimulationsDisplay = document.getElementById("total-simulations");
+const lastActiveDisplay = document.getElementById("last-active");
+const historyList = document.getElementById("history-list");
 
 const canvas = document.getElementById("sortCanvas");
 const ctx = canvas ? canvas.getContext("2d") : null;
@@ -34,6 +40,7 @@ let array = [];
 let arraySize = 25;
 let delay = 500;
 let isRunning = false;
+let currentUser = null;
 
 // --- colors ---
 const COLORS = {
@@ -61,9 +68,9 @@ const ALGORITHMS = {
 const DESCRIPTIONS = {
   sorting: {
     bubble:
-      "Bubble Sort adalah algoritma pengurutan sederhana yang berulang kali menelusuri daftar, membandingkan elemen yang berdekatan dan menukarnya jika urutannya salah. Penelusuran diulang hingga daftar tersebut diurutkan.",
+      "Bubble Sort adalah algoritma pengurutan sederhana yang berulang kali menelusuri daftar, membandingkan elemen yang berdekatan dan menukarnya jika urutannya salah. Penelusuran diulang hingga daftar terurut.",
     selection:
-      "Selection Sort membagi daftar menjadi dua bagian: terurut dan tidak terurut. Algoritma ini berulang kali menemukan elemen minimum dari bagian yang tidak terurut dan memindahkannya ke akhir bagian yang terurut.",
+      "Selection Sort membagi daftar menjadi dua bagian: terurut dan tidak terurut. Algoritma ini berulang kali menemukan elemen minimum dari bagian yang tidak terurut dan memindahkannya ke akhir bagian terurut.",
     insertion:
       "Insertion Sort membangun array yang diurutkan satu per satu. Algoritma ini mengambil satu elemen dari data yang belum diurutkan dan memasukkannya ke posisi yang benar di bagian yang sudah terurut.",
   },
@@ -71,9 +78,140 @@ const DESCRIPTIONS = {
     linear:
       "Linear Search adalah metode pencarian sekuensial. Ia secara berurutan memeriksa setiap elemen dalam daftar sampai elemen target ditemukan atau seluruh daftar telah diperiksa.",
     binary:
-      "Binary Search adalah algoritma pencarian efisien yang bekerja pada array terurut. Ia membandingkan elemen target dengan elemen tengah, dan jika tidak sama, setengah bagian di mana target tidak mungkin ada akan dieliminasi.",
+      "Binary Search adalah algoritma pencarian efisien yang bekerja pada array terurut. Ia membandingkan elemen target dengan elemen tengah, dan jika tidak sama, setengah bagian di mana target tidak mungkin berada akan dieliminasi.",
   },
 };
+
+// --- firebase helper functions ---
+async function loadUserData(user) {
+  try {
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      if (usernameDisplay) {
+        usernameDisplay.textContent = userData.name || "User";
+      }
+      if (totalSimulationsDisplay) {
+        totalSimulationsDisplay.textContent = userData.totalSimulations || 0;
+      }
+      if (lastActiveDisplay && userData.lastActive) {
+        const lastActive = userData.lastActive.toDate();
+        lastActiveDisplay.textContent = formatDate(lastActive);
+      }
+    }
+  } catch (error) {
+    console.error("Error loading user data:", error);
+  }
+}
+
+async function loadUserHistory(user) {
+  try {
+    const progressDoc = await getDoc(doc(db, "userProgress", user.uid));
+    if (progressDoc.exists()) {
+      const progressData = progressDoc.data();
+      const simulations = progressData.simulations || [];
+
+      if (historyList && simulations.length > 0) {
+        historyList.innerHTML = "";
+        // tampilkan 10 simulasi terakhir
+        simulations
+          .slice(-10)
+          .reverse()
+          .forEach((sim, index) => {
+            const simElement = document.createElement("div");
+            simElement.style.cssText =
+              "padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-light-alt); border-radius: 0.375rem; font-size: 0.875rem;";
+
+            const timestamp = sim.timestamp
+              ? new Date(sim.timestamp).toLocaleString("id-ID")
+              : "-";
+            const resultText =
+              sim.result === "success" ? "✓ Berhasil" : "✗ Dibatalkan";
+            const resultColor =
+              sim.result === "success" ? "var(--sorted)" : "var(--gray-mid)";
+
+            simElement.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <strong>${sim.algorithmName}</strong>
+              <span style="color: ${resultColor};">${resultText}</span>
+            </div>
+            <div style="color: var(--gray-mid);">
+              ${
+                sim.category === "searching"
+                  ? `Target: ${sim.searchValue || "-"} | `
+                  : ""
+              }
+              Ukuran Array: ${sim.arraySize} | ${timestamp}
+            </div>
+          `;
+            historyList.appendChild(simElement);
+          });
+      }
+    }
+  } catch (error) {
+    console.error("Error loading user history:", error);
+  }
+}
+
+async function saveSimulation(
+  algorithmName,
+  category,
+  result,
+  searchValue = null
+) {
+  if (!currentUser) return;
+
+  try {
+    const simulationData = {
+      algorithmName: algorithmName,
+      category: category,
+      arraySize: arraySize,
+      timestamp: new Date().toISOString(),
+      result: result, // 'success' atau 'cancelled'
+    };
+
+    if (category === "searching" && searchValue !== null) {
+      simulationData.searchValue = searchValue;
+    }
+
+    // update user progress
+    await updateDoc(doc(db, "userProgress", currentUser.uid), {
+      simulations: arrayUnion(simulationData),
+      lastUpdated: serverTimestamp(),
+    });
+
+    // update total simulations jika berhasil
+    if (result === "success") {
+      await updateDoc(doc(db, "users", currentUser.uid), {
+        totalSimulations: increment(1),
+        lastActive: serverTimestamp(),
+      });
+
+      // update display
+      if (totalSimulationsDisplay) {
+        const currentTotal = parseInt(totalSimulationsDisplay.textContent) || 0;
+        totalSimulationsDisplay.textContent = currentTotal + 1;
+      }
+    }
+
+    // reload history
+    await loadUserHistory(currentUser);
+  } catch (error) {
+    console.error("Error saving simulation:", error);
+  }
+}
+
+function formatDate(date) {
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000); // difference in seconds
+
+  if (diff < 60) return "Baru saja";
+  if (diff < 3600) return `${Math.floor(diff / 60)} menit yang lalu`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} jam yang lalu`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)} hari yang lalu`;
+
+  return date.toLocaleDateString("id-ID");
+}
 
 // --- core functions ---
 function setCanvasSize() {
@@ -330,90 +468,29 @@ async function binarySearch(target) {
 }
 
 // --- event listeners ---
-// login form handler
-if (loginForm) {
-  loginForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-
-    // get users from localStorage
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-
-    // find user with matching email and password
-    const user = users.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (user) {
-      // store current user session
-      localStorage.setItem(
-        "currentUser",
-        JSON.stringify({
-          name: user.name,
-          email: user.email,
-        })
-      );
-      window.location.href = "main-page.html";
-    } else {
-      alert("Email atau password salah!");
-    }
-  });
-}
-
-// register form handler
-if (registerForm) {
-  registerForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const name = registerNameInput.value.trim();
-    const email = registerEmailInput.value.trim();
-    const password = registerPasswordInput.value;
-    const confirmPassword = registerConfirmPasswordInput.value;
-
-    // validation
-    if (password !== confirmPassword) {
-      alert("Password dan konfirmasi password tidak cocok!");
-      return;
-    }
-
-    if (password.length < 6) {
-      alert("Password minimal 6 karakter!");
-      return;
-    }
-
-    // get existing users
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-
-    // Check if email already exists
-    if (users.some((u) => u.email === email)) {
-      alert("Email sudah terdaftar!");
-      return;
-    }
-
-    // add new user
-    users.push({ name, email, password });
-    localStorage.setItem("users", JSON.stringify(users));
-
-    alert("Registrasi berhasil! Silakan login.");
-    window.location.href = "index.html";
-  });
-}
-
-// memeriksa kita berada di halaman lab atau ngga
+// auth state observer untuk main page
 if (labScreen) {
-  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
-
-  if (currentUser && usernameDisplay) {
-    usernameDisplay.textContent = currentUser.name;
-  } else if (!currentUser) {
-    window.location.href = "index.html";
-  }
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      isRunning = false;
-      localStorage.removeItem("currentUser");
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      await loadUserData(user);
+      await loadUserHistory(user);
+    } else {
       window.location.href = "index.html";
+    }
+  });
+
+  // logout button
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        isRunning = false;
+        await signOut(auth);
+        window.location.href = "index.html";
+      } catch (error) {
+        console.error("Error logging out:", error);
+        alert("Terjadi kesalahan saat logout. Silakan coba lagi.");
+      }
     });
   }
 
@@ -453,8 +530,16 @@ if (labScreen) {
         isRunning = false;
         startBtn.textContent = "Mulai";
         updateStatus("Animasi dihentikan oleh pengguna.");
+
+        // save sebagai cancelled
+        const algorithmKey = algorithmSelect.value;
+        const category = categorySelect.value;
+        const algorithmName = ALGORITHMS[category][algorithmKey].name;
+        await saveSimulation(algorithmName, category, "cancelled");
+
         return;
       }
+
       isRunning = true;
       toggleControls(false);
       startBtn.disabled = false;
@@ -463,6 +548,7 @@ if (labScreen) {
       const category = categorySelect.value;
       const algorithmKey = algorithmSelect.value;
       const selectedAlgorithm = ALGORITHMS[category][algorithmKey].func;
+      const algorithmName = ALGORITHMS[category][algorithmKey].name;
 
       if (category === "searching") {
         const target = parseInt(searchValueInput.value);
@@ -473,6 +559,11 @@ if (labScreen) {
           return;
         }
         await selectedAlgorithm(target);
+
+        // save simulation jika selesai
+        if (isRunning) {
+          await saveSimulation(algorithmName, category, "success", target);
+        }
       } else {
         await selectedAlgorithm();
         if (isRunning) {
@@ -481,6 +572,9 @@ if (labScreen) {
             await sleep(20);
           }
           updateStatus("Selesai! Array telah diurutkan.");
+
+          // Save simulation
+          await saveSimulation(algorithmName, category, "success");
         }
       }
 

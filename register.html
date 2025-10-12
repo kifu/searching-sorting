@@ -95,6 +95,13 @@
           <button type="submit" class="btn btn-primary full-width">
             Daftar
           </button>
+          <div
+            id="register-error"
+            style="color: var(--red); margin-top: 1rem; display: none"
+          ></div>
+          <div id="register-loading" style="margin-top: 1rem; display: none">
+            Memproses...
+          </div>
         </form>
         <p style="margin-top: 1rem; font-size: 0.875rem">
           Sudah punya akun?
@@ -108,6 +115,6 @@
     </div>
 
     <!-- javascript -->
-    <script src="js/script.js"></script>
+    <script type="module" src="js/auth.js"></script>
   </body>
 </html>

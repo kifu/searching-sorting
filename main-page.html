@@ -12,7 +12,11 @@
       <header>
         <div>
           <h1>searching - sorting: Lab Visualisasi Algoritma</h1>
-          <p>Selamat datang, <span id="username-display"></span>!</p>
+          <p>Selamat datang, <span id="username-display">Loading...</span>!</p>
+          <p style="font-size: 0.875rem; color: var(--gray-mid)">
+            Total Simulasi: <span id="total-simulations">0</span> | Terakhir
+            Aktif: <span id="last-active">-</span>
+          </p>
         </div>
         <button id="logoutBtn" class="btn btn-secondary">Keluar</button>
       </header>
@@ -80,10 +84,18 @@
             Pilih kategori dan algoritma untuk melihat deskripsinya.
           </p>
         </section>
+
+        <!-- Progress History Section -->
+        <section id="history" style="margin-top: 2rem">
+          <h2>Riwayat Simulasi</h2>
+          <div id="history-list" style="max-height: 300px; overflow-y: auto">
+            <p style="color: var(--gray-mid)">Belum ada riwayat simulasi.</p>
+          </div>
+        </section>
       </main>
     </div>
 
     <!-- javascript -->
-    <script src="js/script.js"></script>
+    <script type="module" src="js/script.js"></script>
   </body>
 </html>

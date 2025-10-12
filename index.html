@@ -55,6 +55,13 @@
           <button type="submit" class="btn btn-primary full-width">
             Masuk
           </button>
+          <div
+            id="login-error"
+            style="color: var(--red); margin-top: 1rem; display: none"
+          ></div>
+          <div id="login-loading" style="margin-top: 1rem; display: none">
+            Memproses...
+          </div>
         </form>
         <p style="margin-top: 1rem; font-size: 0.875rem">
           Belum punya akun?
@@ -68,6 +75,6 @@
     </div>
 
     <!-- javascript -->
-    <script src="js/script.js"></script>
+    <script type="module" src="js/auth.js"></script>
   </body>
 </html>
