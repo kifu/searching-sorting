@@ -13,12 +13,22 @@
         <div>
           <h1>searching - sorting: Lab Visualisasi Algoritma</h1>
           <p>Selamat datang, <span id="username-display">Loading...</span>!</p>
-          <p style="font-size: 0.875rem; color: var(--gray-mid)">
-            Total Simulasi: <span id="total-simulations">0</span> | Terakhir
-            Aktif: <span id="last-active">-</span>
+          <p
+            style="
+              font-size: 0.875rem;
+              color: var(--gray-mid);
+              margin-top: 0.5rem;
+            "
+          >
+            Akun Dibuat: <span id="account-created">Loading...</span>
           </p>
         </div>
-        <button id="logoutBtn" class="btn btn-secondary">Keluar</button>
+        <div style="display: flex; gap: 0.5rem">
+          <button id="changePasswordBtn" class="btn btn-secondary">
+            Ubah Password
+          </button>
+          <button id="logoutBtn" class="btn btn-secondary">Keluar</button>
+        </div>
       </header>
 
       <main class="card">
@@ -84,15 +94,105 @@
             Pilih kategori dan algoritma untuk melihat deskripsinya.
           </p>
         </section>
-
-        <!-- Progress History Section -->
-        <section id="history" style="margin-top: 2rem">
-          <h2>Riwayat Simulasi</h2>
-          <div id="history-list" style="max-height: 300px; overflow-y: auto">
-            <p style="color: var(--gray-mid)">Belum ada riwayat simulasi.</p>
-          </div>
-        </section>
       </main>
+    </div>
+
+    <!-- change password modal -->
+    <div id="change-password-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Ubah Password</h2>
+        <form id="change-password-form">
+          <div style="margin-bottom: 1rem">
+            <label
+              for="current-password"
+              style="
+                display: block;
+                text-align: left;
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+              "
+            >
+              Password Lama
+            </label>
+            <input
+              type="password"
+              id="current-password"
+              class="input-field"
+              placeholder="Masukkan password lama"
+              required
+              autocomplete="current-password"
+            />
+          </div>
+          <div style="margin-bottom: 1rem">
+            <label
+              for="new-password"
+              style="
+                display: block;
+                text-align: left;
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+              "
+            >
+              Password Baru
+            </label>
+            <input
+              type="password"
+              id="new-password"
+              class="input-field"
+              placeholder="Minimal 6 karakter"
+              required
+              minlength="6"
+              autocomplete="new-password"
+            />
+          </div>
+          <div style="margin-bottom: 1rem">
+            <label
+              for="confirm-new-password"
+              style="
+                display: block;
+                text-align: left;
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+              "
+            >
+              Konfirmasi Password Baru
+            </label>
+            <input
+              type="password"
+              id="confirm-new-password"
+              class="input-field"
+              placeholder="Masukkan ulang password baru"
+              required
+              minlength="6"
+              autocomplete="new-password"
+            />
+          </div>
+          <div style="display: flex; gap: 0.5rem">
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Ubah Password
+            </button>
+            <button
+              type="button"
+              id="cancel-change"
+              class="btn btn-secondary"
+              style="flex: 1"
+            >
+              Batal
+            </button>
+          </div>
+          <div
+            id="change-error"
+            style="color: var(--red); margin-top: 1rem; display: none"
+          ></div>
+          <div
+            id="change-success"
+            style="color: var(--sorted); margin-top: 1rem; display: none"
+          ></div>
+          <div id="change-loading" style="margin-top: 1rem; display: none">
+            Memproses...
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- javascript -->

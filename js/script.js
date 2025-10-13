@@ -1,25 +1,33 @@
-// js/script.js
 import { auth, db } from "./firebase-config.js";
 import {
   signOut,
   onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import {
   doc,
   getDoc,
-  updateDoc,
-  arrayUnion,
-  increment,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 // --- dom elements ---
 const labScreen = document.getElementById("lab-screen");
 const usernameDisplay = document.getElementById("username-display");
 const logoutBtn = document.getElementById("logoutBtn");
-const totalSimulationsDisplay = document.getElementById("total-simulations");
-const lastActiveDisplay = document.getElementById("last-active");
-const historyList = document.getElementById("history-list");
+const changePasswordBtn = document.getElementById("changePasswordBtn");
+const accountCreatedDisplay = document.getElementById("account-created");
+
+// Modal elements
+const changePasswordModal = document.getElementById("change-password-modal");
+const changePasswordForm = document.getElementById("change-password-form");
+const currentPasswordInput = document.getElementById("current-password");
+const newPasswordInput = document.getElementById("new-password");
+const confirmNewPasswordInput = document.getElementById("confirm-new-password");
+const cancelChangeBtn = document.getElementById("cancel-change");
+const changeError = document.getElementById("change-error");
+const changeSuccess = document.getElementById("change-success");
+const changeLoading = document.getElementById("change-loading");
 
 const canvas = document.getElementById("sortCanvas");
 const ctx = canvas ? canvas.getContext("2d") : null;
@@ -78,7 +86,7 @@ const DESCRIPTIONS = {
     linear:
       "Linear Search adalah metode pencarian sekuensial. Ia secara berurutan memeriksa setiap elemen dalam daftar sampai elemen target ditemukan atau seluruh daftar telah diperiksa.",
     binary:
-      "Binary Search adalah algoritma pencarian efisien yang bekerja pada array terurut. Ia membandingkan elemen target dengan elemen tengah, dan jika tidak sama, setengah bagian di mana target tidak mungkin berada akan dieliminasi.",
+      "Binary Search adalah algoritma pencarian efisien yang bekerja pada array terurut. Ia membandingkan elemen target dengan elemen tengah, dan jika tidak sama, setengah bagian di mana target tidak mungkin berada akan dihilangkan.",
   },
 };
 
@@ -88,129 +96,141 @@ async function loadUserData(user) {
     const userDoc = await getDoc(doc(db, "users", user.uid));
     if (userDoc.exists()) {
       const userData = userDoc.data();
+
+      // Set username
       if (usernameDisplay) {
-        usernameDisplay.textContent = userData.name || "User";
+        usernameDisplay.textContent = userData.name || user.email || "User";
       }
-      if (totalSimulationsDisplay) {
-        totalSimulationsDisplay.textContent = userData.totalSimulations || 0;
+
+      // Set account created
+      if (accountCreatedDisplay) {
+        if (userData.createdAt) {
+          const createdAt = userData.createdAt.toDate();
+          accountCreatedDisplay.textContent = formatDateFull(createdAt);
+        } else {
+          accountCreatedDisplay.textContent = "Data tidak tersedia";
+        }
       }
-      if (lastActiveDisplay && userData.lastActive) {
-        const lastActive = userData.lastActive.toDate();
-        lastActiveDisplay.textContent = formatDate(lastActive);
+    } else {
+      // Jika dokumen user tidak ada, tampilkan email
+      if (usernameDisplay) {
+        usernameDisplay.textContent = user.email || "User";
+      }
+      if (accountCreatedDisplay) {
+        accountCreatedDisplay.textContent = "Data tidak tersedia";
       }
     }
   } catch (error) {
     console.error("Error loading user data:", error);
+
+    // Fallback jika error
+    if (usernameDisplay) {
+      usernameDisplay.textContent = user.email || "User";
+    }
+    if (accountCreatedDisplay) {
+      accountCreatedDisplay.textContent = "Data tidak tersedia";
+    }
   }
 }
 
-async function loadUserHistory(user) {
+function formatDateFull(date) {
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+// --- change password functions ---
+function showChangePasswordModal() {
+  if (changePasswordModal) {
+    changePasswordModal.classList.remove("hidden");
+  }
+}
+
+function hideChangePasswordModal() {
+  if (changePasswordModal) {
+    changePasswordModal.classList.add("hidden");
+    if (changePasswordForm) {
+      changePasswordForm.reset();
+    }
+    if (changeError) changeError.style.display = "none";
+    if (changeSuccess) changeSuccess.style.display = "none";
+    if (changeLoading) changeLoading.style.display = "none";
+  }
+}
+
+async function handleChangePassword(e) {
+  e.preventDefault();
+
+  const currentPassword = currentPasswordInput.value;
+  const newPassword = newPasswordInput.value;
+  const confirmNewPassword = confirmNewPasswordInput.value;
+
+  if (changeError) changeError.style.display = "none";
+  if (changeSuccess) changeSuccess.style.display = "none";
+
+  // Validasi password baru
+  if (newPassword !== confirmNewPassword) {
+    if (changeError) {
+      changeError.textContent =
+        "Password baru dan konfirmasi password tidak cocok!";
+      changeError.style.display = "block";
+    }
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    if (changeError) {
+      changeError.textContent = "Password baru minimal 6 karakter!";
+      changeError.style.display = "block";
+    }
+    return;
+  }
+
   try {
-    const progressDoc = await getDoc(doc(db, "userProgress", user.uid));
-    if (progressDoc.exists()) {
-      const progressData = progressDoc.data();
-      const simulations = progressData.simulations || [];
+    if (changeLoading) changeLoading.style.display = "block";
 
-      if (historyList && simulations.length > 0) {
-        historyList.innerHTML = "";
-        // tampilkan 10 simulasi terakhir
-        simulations
-          .slice(-10)
-          .reverse()
-          .forEach((sim, index) => {
-            const simElement = document.createElement("div");
-            simElement.style.cssText =
-              "padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-light-alt); border-radius: 0.375rem; font-size: 0.875rem;";
+    // Re-authenticate user dengan password lama
+    const credential = EmailAuthProvider.credential(
+      currentUser.email,
+      currentPassword
+    );
+    await reauthenticateWithCredential(currentUser, credential);
 
-            const timestamp = sim.timestamp
-              ? new Date(sim.timestamp).toLocaleString("id-ID")
-              : "-";
-            const resultText =
-              sim.result === "success" ? "✓ Berhasil" : "✗ Dibatalkan";
-            const resultColor =
-              sim.result === "success" ? "var(--sorted)" : "var(--gray-mid)";
+    // Update password
+    await updatePassword(currentUser, newPassword);
 
-            simElement.innerHTML = `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-              <strong>${sim.algorithmName}</strong>
-              <span style="color: ${resultColor};">${resultText}</span>
-            </div>
-            <div style="color: var(--gray-mid);">
-              ${
-                sim.category === "searching"
-                  ? `Target: ${sim.searchValue || "-"} | `
-                  : ""
-              }
-              Ukuran Array: ${sim.arraySize} | ${timestamp}
-            </div>
-          `;
-            historyList.appendChild(simElement);
-          });
-      }
+    if (changeSuccess) {
+      changeSuccess.textContent = "Password berhasil diubah!";
+      changeSuccess.style.display = "block";
     }
+
+    setTimeout(() => {
+      hideChangePasswordModal();
+    }, 2000);
   } catch (error) {
-    console.error("Error loading user history:", error);
-  }
-}
+    console.error("Error changing password:", error);
 
-async function saveSimulation(
-  algorithmName,
-  category,
-  result,
-  searchValue = null
-) {
-  if (!currentUser) return;
-
-  try {
-    const simulationData = {
-      algorithmName: algorithmName,
-      category: category,
-      arraySize: arraySize,
-      timestamp: new Date().toISOString(),
-      result: result, // 'success' atau 'cancelled'
-    };
-
-    if (category === "searching" && searchValue !== null) {
-      simulationData.searchValue = searchValue;
+    let errorMessage = "Terjadi kesalahan saat mengubah password.";
+    if (error.code === "auth/wrong-password") {
+      errorMessage = "Password lama salah!";
+    } else if (error.code === "auth/weak-password") {
+      errorMessage = "Password baru terlalu lemah!";
+    } else if (error.code === "auth/requires-recent-login") {
+      errorMessage =
+        "Silakan logout dan login kembali untuk mengubah password.";
+    } else if (error.code === "auth/invalid-credential") {
+      errorMessage = "Password lama salah!";
     }
 
-    // update user progress
-    await updateDoc(doc(db, "userProgress", currentUser.uid), {
-      simulations: arrayUnion(simulationData),
-      lastUpdated: serverTimestamp(),
-    });
-
-    // update total simulations jika berhasil
-    if (result === "success") {
-      await updateDoc(doc(db, "users", currentUser.uid), {
-        totalSimulations: increment(1),
-        lastActive: serverTimestamp(),
-      });
-
-      // update display
-      if (totalSimulationsDisplay) {
-        const currentTotal = parseInt(totalSimulationsDisplay.textContent) || 0;
-        totalSimulationsDisplay.textContent = currentTotal + 1;
-      }
+    if (changeError) {
+      changeError.textContent = errorMessage;
+      changeError.style.display = "block";
     }
-
-    // reload history
-    await loadUserHistory(currentUser);
-  } catch (error) {
-    console.error("Error saving simulation:", error);
+  } finally {
+    if (changeLoading) changeLoading.style.display = "none";
   }
-}
-
-function formatDate(date) {
-  const now = new Date();
-  const diff = Math.floor((now - date) / 1000); // difference in seconds
-
-  if (diff < 60) return "Baru saja";
-  if (diff < 3600) return `${Math.floor(diff / 60)} menit yang lalu`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} jam yang lalu`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)} hari yang lalu`;
-
-  return date.toLocaleDateString("id-ID");
 }
 
 // --- core functions ---
@@ -474,7 +494,6 @@ if (labScreen) {
     if (user) {
       currentUser = user;
       await loadUserData(user);
-      await loadUserHistory(user);
     } else {
       window.location.href = "index.html";
     }
@@ -490,6 +509,30 @@ if (labScreen) {
       } catch (error) {
         console.error("Error logging out:", error);
         alert("Terjadi kesalahan saat logout. Silakan coba lagi.");
+      }
+    });
+  }
+
+  // change password button
+  if (changePasswordBtn) {
+    changePasswordBtn.addEventListener("click", showChangePasswordModal);
+  }
+
+  // change password form
+  if (changePasswordForm) {
+    changePasswordForm.addEventListener("submit", handleChangePassword);
+  }
+
+  // cancel change button
+  if (cancelChangeBtn) {
+    cancelChangeBtn.addEventListener("click", hideChangePasswordModal);
+  }
+
+  // close modal when clicking outside
+  if (changePasswordModal) {
+    changePasswordModal.addEventListener("click", (e) => {
+      if (e.target === changePasswordModal) {
+        hideChangePasswordModal();
       }
     });
   }
@@ -530,13 +573,6 @@ if (labScreen) {
         isRunning = false;
         startBtn.textContent = "Mulai";
         updateStatus("Animasi dihentikan oleh pengguna.");
-
-        // save sebagai cancelled
-        const algorithmKey = algorithmSelect.value;
-        const category = categorySelect.value;
-        const algorithmName = ALGORITHMS[category][algorithmKey].name;
-        await saveSimulation(algorithmName, category, "cancelled");
-
         return;
       }
 
@@ -548,7 +584,6 @@ if (labScreen) {
       const category = categorySelect.value;
       const algorithmKey = algorithmSelect.value;
       const selectedAlgorithm = ALGORITHMS[category][algorithmKey].func;
-      const algorithmName = ALGORITHMS[category][algorithmKey].name;
 
       if (category === "searching") {
         const target = parseInt(searchValueInput.value);
@@ -559,11 +594,6 @@ if (labScreen) {
           return;
         }
         await selectedAlgorithm(target);
-
-        // save simulation jika selesai
-        if (isRunning) {
-          await saveSimulation(algorithmName, category, "success", target);
-        }
       } else {
         await selectedAlgorithm();
         if (isRunning) {
@@ -572,9 +602,6 @@ if (labScreen) {
             await sleep(20);
           }
           updateStatus("Selesai! Array telah diurutkan.");
-
-          // Save simulation
-          await saveSimulation(algorithmName, category, "success");
         }
       }
 
