@@ -5,13 +5,12 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/12.4.0/firebase
 
 // konfigurasi firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyCcGYZWzdtjDJ9RnGuFoHJnX7YjqhTtJ8Y",
-  authDomain: "searching-sorting-lab-745c6.firebaseapp.com",
-  projectId: "searching-sorting-lab-745c6",
-  storageBucket: "searching-sorting-lab-745c6.firebasestorage.app",
-  messagingSenderId: "414945976243",
-  appId: "1:414945976243:web:b7f46f40acfe58363f75c6",
-  measurementId: "G-51T01TSQN9",
+  apiKey: "AIzaSyDQJB4mtmGfXg5hZDHvm5GPnvJsAjztIlM",
+  authDomain: "searching-sorting.firebaseapp.com",
+  projectId: "searching-sorting",
+  storageBucket: "searching-sorting.firebasestorage.app",
+  messagingSenderId: "996476007253",
+  appId: "1:996476007253:web:d6168a70da0760625435dc",
 };
 
 // initialize firebase

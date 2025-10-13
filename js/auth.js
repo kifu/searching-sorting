@@ -85,6 +85,7 @@ if (registerForm) {
         name: name,
         email: email,
         createdAt: serverTimestamp(),
+        uid: user.uid,
       });
 
       alert("Registrasi berhasil! Silakan login.");
@@ -92,7 +93,6 @@ if (registerForm) {
     } catch (error) {
       console.error("Error registrasi:", error);
 
-      // Handle error messages
       let errorMessage = "Terjadi kesalahan saat registrasi.";
       if (error.code === "auth/email-already-in-use") {
         errorMessage = "Email sudah terdaftar!";
@@ -131,13 +131,12 @@ if (loginForm) {
       );
       const user = userCredential.user;
 
-      // Update lastActive
       await setDoc(
         doc(db, "users", user.uid),
         {
           lastActive: serverTimestamp(),
         },
-        { merge: true }
+        { merge: true } // Opsi merge: true agar tidak menimpa data yang sudah ada
       );
 
       // Redirect ke main page
@@ -145,7 +144,6 @@ if (loginForm) {
     } catch (error) {
       console.error("Error login:", error);
 
-      // Handle error messages
       let errorMessage = "Terjadi kesalahan saat login.";
       if (
         error.code === "auth/user-not-found" ||
@@ -174,15 +172,11 @@ onAuthStateChanged(auth, async (user) => {
   const isRegisterPage = currentPath.includes("register.html");
 
   if (user) {
-    // User sudah login
     if (isLoginPage || isRegisterPage) {
-      // Redirect ke main page jika sudah login
       window.location.href = "main-page.html";
     }
   } else {
-    // User belum login
     if (isMainPage) {
-      // Redirect ke login jika belum login
       window.location.href = "index.html";
     }
   }
