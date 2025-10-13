@@ -7,7 +7,6 @@ import {
 import {
   doc,
   setDoc,
-  getDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
@@ -86,14 +85,6 @@ if (registerForm) {
         name: name,
         email: email,
         createdAt: serverTimestamp(),
-        totalSimulations: 0,
-        lastActive: serverTimestamp(),
-      });
-
-      // Buat dokumen untuk menyimpan progress
-      await setDoc(doc(db, "userProgress", user.uid), {
-        simulations: [],
-        lastUpdated: serverTimestamp(),
       });
 
       alert("Registrasi berhasil! Silakan login.");
@@ -158,7 +149,8 @@ if (loginForm) {
       let errorMessage = "Terjadi kesalahan saat login.";
       if (
         error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
       ) {
         errorMessage = "Email atau password salah!";
       } else if (error.code === "auth/invalid-email") {
