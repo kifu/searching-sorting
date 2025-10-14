@@ -23,13 +23,13 @@
                 font-weight: 500;
                 margin-bottom: 0.5rem;
               "
-              >Nama
-            </label>
+              >Nama Lengkap</label
+            >
             <input
               type="text"
               id="register-name"
               class="input-field"
-              placeholder="Nama anda"
+              placeholder="Nama Lengkap"
               required
             />
           </div>
@@ -95,13 +95,6 @@
           <button type="submit" class="btn btn-primary full-width">
             Daftar
           </button>
-          <div
-            id="register-error"
-            style="color: var(--red); margin-top: 1rem; display: none"
-          ></div>
-          <div id="register-loading" style="margin-top: 1rem; display: none">
-            Memproses...
-          </div>
         </form>
         <p style="margin-top: 1rem; font-size: 0.875rem">
           Sudah punya akun?
@@ -114,7 +107,15 @@
       </div>
     </div>
 
+    <!-- firebase sdk -->
+    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
+
+    <!-- firebase config -->
+    <script src="js/firebase-config.js"></script>
+
     <!-- javascript -->
-    <script type="module" src="js/auth.js"></script>
+    <script src="js/script.js"></script>
   </body>
 </html>

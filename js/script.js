@@ -1,33 +1,26 @@
-import { auth, db } from "./firebase-config.js";
-import {
-  signOut,
-  onAuthStateChanged,
-  updatePassword,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-import {
-  doc,
-  getDoc,
-} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
-
 // --- dom elements ---
+const loginScreen = document.getElementById("login-screen");
+const registerScreen = document.getElementById("register-screen");
+const changePasswordScreen = document.getElementById("change-password-screen");
 const labScreen = document.getElementById("lab-screen");
-const usernameDisplay = document.getElementById("username-display");
-const logoutBtn = document.getElementById("logoutBtn");
-const changePasswordBtn = document.getElementById("changePasswordBtn");
-const accountCreatedDisplay = document.getElementById("account-created");
-
-// Modal elements
-const changePasswordModal = document.getElementById("change-password-modal");
+const loginForm = document.getElementById("login-form");
+const registerForm = document.getElementById("register-form");
 const changePasswordForm = document.getElementById("change-password-form");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const registerNameInput = document.getElementById("register-name");
+const registerEmailInput = document.getElementById("register-email");
+const registerPasswordInput = document.getElementById("register-password");
+const registerConfirmPasswordInput = document.getElementById(
+  "register-confirm-password"
+);
 const currentPasswordInput = document.getElementById("current-password");
 const newPasswordInput = document.getElementById("new-password");
 const confirmNewPasswordInput = document.getElementById("confirm-new-password");
-const cancelChangeBtn = document.getElementById("cancel-change");
-const changeError = document.getElementById("change-error");
-const changeSuccess = document.getElementById("change-success");
-const changeLoading = document.getElementById("change-loading");
+const usernameDisplay = document.getElementById("username-display");
+const accountCreatedDate = document.getElementById("account-created-date");
+const logoutBtn = document.getElementById("logoutBtn");
+const changePasswordBtn = document.getElementById("changePasswordBtn");
 
 const canvas = document.getElementById("sortCanvas");
 const ctx = canvas ? canvas.getContext("2d") : null;
@@ -76,9 +69,9 @@ const ALGORITHMS = {
 const DESCRIPTIONS = {
   sorting: {
     bubble:
-      "Bubble Sort adalah algoritma pengurutan sederhana yang berulang kali menelusuri daftar, membandingkan elemen yang berdekatan dan menukarnya jika urutannya salah. Penelusuran diulang hingga daftar terurut.",
+      "Bubble Sort adalah algoritma pengurutan sederhana yang berulang kali menelusuri daftar, membandingkan elemen yang berdekatan dan menukarnya jika urutannya salah. Penelusuran diulang hingga daftar tersebut diurutkan.",
     selection:
-      "Selection Sort membagi daftar menjadi dua bagian: terurut dan tidak terurut. Algoritma ini berulang kali menemukan elemen minimum dari bagian yang tidak terurut dan memindahkannya ke akhir bagian terurut.",
+      "Selection Sort membagi daftar menjadi dua bagian: terurut dan tidak terurut. Algoritma ini berulang kali menemukan elemen minimum dari bagian yang tidak terurut dan memindahkannya ke akhir bagian yang terurut.",
     insertion:
       "Insertion Sort membangun array yang diurutkan satu per satu. Algoritma ini mengambil satu elemen dari data yang belum diurutkan dan memasukkannya ke posisi yang benar di bagian yang sudah terurut.",
   },
@@ -86,152 +79,94 @@ const DESCRIPTIONS = {
     linear:
       "Linear Search adalah metode pencarian sekuensial. Ia secara berurutan memeriksa setiap elemen dalam daftar sampai elemen target ditemukan atau seluruh daftar telah diperiksa.",
     binary:
-      "Binary Search adalah algoritma pencarian efisien yang bekerja pada array terurut. Ia membandingkan elemen target dengan elemen tengah, dan jika tidak sama, setengah bagian di mana target tidak mungkin berada akan dihilangkan.",
+      "Binary Search adalah algoritma pencarian efisien yang bekerja pada array terurut. Ia membandingkan elemen target dengan elemen tengah, dan jika tidak sama, setengah bagian di mana target tidak mungkin ada akan dieliminasi.",
   },
 };
 
 // --- firebase helper functions ---
-async function loadUserData(user) {
-  try {
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
 
-      // Set username
-      if (usernameDisplay) {
-        usernameDisplay.textContent = userData.name || user.email || "User";
-      }
+// format date
+function formatDate(timestamp) {
+  if (!timestamp) return "-";
 
-      // Set account created
-      if (accountCreatedDisplay) {
-        if (userData.createdAt) {
-          const createdAt = userData.createdAt.toDate();
-          accountCreatedDisplay.textContent = formatDateFull(createdAt);
-        } else {
-          accountCreatedDisplay.textContent = "Data tidak tersedia";
-        }
-      }
-    } else {
-      // Jika dokumen user tidak ada, tampilkan email
-      if (usernameDisplay) {
-        usernameDisplay.textContent = user.email || "User";
-      }
-      if (accountCreatedDisplay) {
-        accountCreatedDisplay.textContent = "Data tidak tersedia";
-      }
-    }
-  } catch (error) {
-    console.error("Error loading user data:", error);
+  let date;
 
-    // Fallback jika error
-    if (usernameDisplay) {
-      usernameDisplay.textContent = user.email || "User";
-    }
-    if (accountCreatedDisplay) {
-      accountCreatedDisplay.textContent = "Data tidak tersedia";
-    }
+  // handle firestore timestamp
+  if (timestamp.toDate) {
+    date = timestamp.toDate();
   }
-}
+  // handle javascript date
+  else if (timestamp instanceof Date) {
+    date = timestamp;
+  }
+  // handle timestamp in milliseconds
+  else if (typeof timestamp === "number") {
+    date = new Date(timestamp);
+  }
+  // handle iso string
+  else if (typeof timestamp === "string") {
+    date = new Date(timestamp);
+  } else {
+    return "-";
+  }
 
-// untuk format tanggal
-function formatDateFull(date) {
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
+  // format: DD-MM-YYYY
+  const options = {
+    day: "2-digit",
+    month: "2-digit",
     year: "numeric",
-  });
+  };
+
+  return new Intl.DateTimeFormat("id-ID", options).format(date);
 }
 
-// --- change password functions ---
-function showChangePasswordModal() {
-  if (changePasswordModal) {
-    changePasswordModal.classList.remove("hidden");
+// show loading indicator
+function showLoading(button) {
+  button.disabled = true;
+  button.dataset.originalText = button.textContent;
+  button.textContent = "Memproses...";
+}
+
+// hide loading indicator
+function hideLoading(button) {
+  button.disabled = false;
+  if (button.dataset.originalText) {
+    button.textContent = button.dataset.originalText;
   }
 }
 
-function hideChangePasswordModal() {
-  if (changePasswordModal) {
-    changePasswordModal.classList.add("hidden");
-    if (changePasswordForm) {
-      changePasswordForm.reset();
-    }
-    if (changeError) changeError.style.display = "none";
-    if (changeSuccess) changeSuccess.style.display = "none";
-    if (changeLoading) changeLoading.style.display = "none";
-  }
-}
-
-async function handleChangePassword(e) {
-  e.preventDefault();
-
-  const currentPassword = currentPasswordInput.value;
-  const newPassword = newPasswordInput.value;
-  const confirmNewPassword = confirmNewPasswordInput.value;
-
-  if (changeError) changeError.style.display = "none";
-  if (changeSuccess) changeSuccess.style.display = "none";
-
-  // Validasi password baru
-  if (newPassword !== confirmNewPassword) {
-    if (changeError) {
-      changeError.textContent =
-        "Password baru dan konfirmasi password tidak cocok!";
-      changeError.style.display = "block";
-    }
-    return;
-  }
-
-  if (newPassword.length < 6) {
-    if (changeError) {
-      changeError.textContent = "Password baru minimal 6 karakter!";
-      changeError.style.display = "block";
-    }
-    return;
-  }
-
+// get user data from Firestore
+async function getUserData(uid) {
   try {
-    if (changeLoading) changeLoading.style.display = "block";
-
-    // Re-authenticate user dengan password lama
-    const credential = EmailAuthProvider.credential(
-      currentUser.email,
-      currentPassword
-    );
-    await reauthenticateWithCredential(currentUser, credential);
-
-    // Update password
-    await updatePassword(currentUser, newPassword);
-
-    if (changeSuccess) {
-      changeSuccess.textContent = "Password berhasil diubah!";
-      changeSuccess.style.display = "block";
+    const userDoc = await db.collection("users").doc(uid).get();
+    if (userDoc.exists) {
+      return userDoc.data();
     }
-
-    setTimeout(() => {
-      hideChangePasswordModal();
-    }, 2000);
+    return null;
   } catch (error) {
-    console.error("Error changing password:", error);
-
-    let errorMessage = "Terjadi kesalahan saat mengubah password.";
-    if (error.code === "auth/wrong-password") {
-      errorMessage = "Password lama salah!";
-    } else if (error.code === "auth/weak-password") {
-      errorMessage = "Password baru terlalu lemah!";
-    } else if (error.code === "auth/requires-recent-login") {
-      errorMessage =
-        "Silakan logout dan login kembali untuk mengubah password.";
-    } else if (error.code === "auth/invalid-credential") {
-      errorMessage = "Password lama salah!";
-    }
-
-    if (changeError) {
-      changeError.textContent = errorMessage;
-      changeError.style.display = "block";
-    }
-  } finally {
-    if (changeLoading) changeLoading.style.display = "none";
+    console.error("Error getting user data:", error);
+    return null;
   }
+}
+
+// save user data to Firestore
+async function saveUserData(uid, data) {
+  try {
+    await db.collection("users").doc(uid).set(data, { merge: true });
+    return true;
+  } catch (error) {
+    console.error("Error saving user data:", error);
+    return false;
+  }
+}
+
+// check authentication state
+function checkAuth() {
+  return new Promise((resolve) => {
+    auth.onAuthStateChanged((user) => {
+      resolve(user);
+    });
+  });
 }
 
 // --- core functions ---
@@ -271,7 +206,7 @@ function drawArray(colorConfig = {}) {
     ctx.fillStyle = colorConfig[index] || COLORS.default;
     ctx.fillRect(x, y, drawableBarWidth, barHeight);
 
-    // Draw value on top of the bar if space allows
+    // draw value on top of the bar if space allows
     if (drawableBarWidth > 20) {
       ctx.fillStyle = "#000";
       ctx.textAlign = "center";
@@ -489,51 +424,237 @@ async function binarySearch(target) {
 }
 
 // --- event listeners ---
-// auth state observer untuk main page
+// login form handler
+if (loginForm) {
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    showLoading(submitBtn);
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    try {
+      // sign in with Firebase
+      const userCredential = await auth.signInWithEmailAndPassword(
+        email,
+        password
+      );
+
+      // get user data from Firestore
+      const userData = await getUserData(userCredential.user.uid);
+
+      if (userData) {
+        // redirect to main page
+        window.location.href = "main-page.html";
+      } else {
+        throw new Error("Data pengguna tidak ditemukan");
+      }
+    } catch (error) {
+      hideLoading(submitBtn);
+      console.error("Login error:", error);
+
+      let errorMessage = "Email atau password salah!";
+      if (error.code === "auth/user-not-found") {
+        errorMessage = "Pengguna tidak ditemukan!";
+      } else if (error.code === "auth/wrong-password") {
+        errorMessage = "Password salah!";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Format email tidak valid!";
+      } else if (error.code === "auth/user-disabled") {
+        errorMessage = "Akun Anda telah dinonaktifkan!";
+      }
+
+      alert(errorMessage);
+    }
+  });
+}
+
+// register form handler
+if (registerForm) {
+  registerForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    showLoading(submitBtn);
+
+    const name = registerNameInput.value.trim();
+    const email = registerEmailInput.value.trim();
+    const password = registerPasswordInput.value;
+    const confirmPassword = registerConfirmPasswordInput.value;
+
+    // validation
+    if (password !== confirmPassword) {
+      hideLoading(submitBtn);
+      alert("Password dan konfirmasi password tidak cocok!");
+      return;
+    }
+
+    if (password.length < 6) {
+      hideLoading(submitBtn);
+      alert("Password minimal 6 karakter!");
+      return;
+    }
+
+    try {
+      // create user with Firebase Authentication
+      const userCredential = await auth.createUserWithEmailAndPassword(
+        email,
+        password
+      );
+
+      // update display name
+      await userCredential.user.updateProfile({
+        displayName: name,
+      });
+
+      // save user data to Firestore
+      await saveUserData(userCredential.user.uid, {
+        name: name,
+        email: email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      alert("Registrasi berhasil! Silakan login.");
+      window.location.href = "index.html";
+    } catch (error) {
+      hideLoading(submitBtn);
+      console.error("Registration error:", error);
+
+      let errorMessage = "Terjadi kesalahan saat registrasi!";
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = "Email sudah terdaftar!";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Format email tidak valid!";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "Password terlalu lemah!";
+      }
+
+      alert(errorMessage);
+    }
+  });
+}
+
+// change password form handler
+if (changePasswordForm) {
+  changePasswordForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    showLoading(submitBtn);
+
+    const currentPassword = currentPasswordInput.value;
+    const newPassword = newPasswordInput.value;
+    const confirmNewPassword = confirmNewPasswordInput.value;
+
+    // validation
+    if (newPassword !== confirmNewPassword) {
+      hideLoading(submitBtn);
+      alert("Password baru dan konfirmasi password tidak cocok!");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      hideLoading(submitBtn);
+      alert("Password baru minimal 6 karakter!");
+      return;
+    }
+
+    try {
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error("Pengguna tidak terautentikasi");
+      }
+
+      // re-authenticate user with current password
+      const credential = firebase.auth.EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
+
+      await user.reauthenticateWithCredential(credential);
+
+      // update password
+      await user.updatePassword(newPassword);
+
+      // update timestamp in Firestore
+      await saveUserData(user.uid, {
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      alert(
+        "Password berhasil diubah! Silakan login kembali dengan password baru."
+      );
+
+      // sign out and redirect to login
+      await auth.signOut();
+      window.location.href = "index.html";
+    } catch (error) {
+      hideLoading(submitBtn);
+      console.error("Change password error:", error);
+
+      let errorMessage = "Terjadi kesalahan saat mengubah password!";
+      if (error.code === "auth/wrong-password") {
+        errorMessage = "Password saat ini salah!";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "Password baru terlalu lemah!";
+      } else if (error.code === "auth/requires-recent-login") {
+        errorMessage =
+          "Sesi Anda telah berakhir. Silakan login kembali untuk mengubah password.";
+        await auth.signOut();
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 2000);
+      }
+
+      alert(errorMessage);
+    }
+  });
+}
+
+// memeriksa kita berada di halaman lab atau ngga
 if (labScreen) {
-  onAuthStateChanged(auth, async (user) => {
+  // check authentication
+  checkAuth().then(async (user) => {
     if (user) {
-      currentUser = user;
-      await loadUserData(user);
+      // get user data
+      const userData = await getUserData(user.uid);
+
+      if (userData && usernameDisplay) {
+        usernameDisplay.textContent = userData.name || user.displayName;
+
+        // display account created date
+        if (accountCreatedDate && userData.createdAt) {
+          accountCreatedDate.textContent = formatDate(userData.createdAt);
+        }
+
+        currentUser = user;
+      } else if (!userData) {
+        alert("Data pengguna tidak ditemukan!");
+        await auth.signOut();
+        window.location.href = "index.html";
+      }
     } else {
       window.location.href = "index.html";
     }
   });
 
-  // logout button
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
-      try {
-        isRunning = false;
-        await signOut(auth);
-        window.location.href = "index.html";
-      } catch (error) {
-        console.error("Error logging out:", error);
-        alert("Terjadi kesalahan saat logout. Silakan coba lagi.");
-      }
+  if (changePasswordBtn) {
+    changePasswordBtn.addEventListener("click", () => {
+      isRunning = false;
+      window.location.href = "change-password.html";
     });
   }
 
-  // change password button
-  if (changePasswordBtn) {
-    changePasswordBtn.addEventListener("click", showChangePasswordModal);
-  }
-
-  // change password form
-  if (changePasswordForm) {
-    changePasswordForm.addEventListener("submit", handleChangePassword);
-  }
-
-  // cancel change button
-  if (cancelChangeBtn) {
-    cancelChangeBtn.addEventListener("click", hideChangePasswordModal);
-  }
-
-  // close modal when clicking outside
-  if (changePasswordModal) {
-    changePasswordModal.addEventListener("click", (e) => {
-      if (e.target === changePasswordModal) {
-        hideChangePasswordModal();
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      isRunning = false;
+      try {
+        await auth.signOut();
+        window.location.href = "index.html";
+      } catch (error) {
+        console.error("Logout error:", error);
+        alert("Terjadi kesalahan saat logout!");
       }
     });
   }
@@ -576,7 +697,6 @@ if (labScreen) {
         updateStatus("Animasi dihentikan oleh pengguna.");
         return;
       }
-
       isRunning = true;
       toggleControls(false);
       startBtn.disabled = false;
@@ -634,4 +754,13 @@ if (labScreen) {
 
   // inisialisasi algoritma saat halaman dimuat
   updateAlgorithmOptions();
+}
+
+// check if we're on change password page
+if (changePasswordScreen) {
+  checkAuth().then((user) => {
+    if (!user) {
+      window.location.href = "index.html";
+    }
+  });
 }
