@@ -764,3 +764,14 @@ if (changePasswordScreen) {
     }
   });
 }
+
+// mengecek status login di halaman index/login
+if (loginScreen) {
+  // tampilkan loading state jika perlu, atau biarkan form muncul sebentar
+  checkAuth().then((user) => {
+    if (user) {
+      // jika user sudah login, langsung lempar ke main-page
+      window.location.href = "main-page.html";
+    }
+  });
+}
